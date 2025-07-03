@@ -1,0 +1,5 @@
+streamlit
+cohere
+pandas
+XlsxWriter
+firebase-admin
