@@ -14,6 +14,8 @@ FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
 if not firebase_admin._apps:
+    if isinstance(firebase_json, str):
+        firebase_json = json.loads(firebase_json)
     cred = credentials.Certificate(firebase_json)
     firebase_admin.initialize_app(cred, {
         'databaseURL': FIREBASE_DB_URL
