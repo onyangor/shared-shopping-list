@@ -8,7 +8,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 # -------------------- CONFIG & SECRETS --------------------
-COHERE_API_KEY = st.secrets["COHERE_API_KEY"]
+COHERE_API_KEY = "pY0RWQCBSdpAOvDnWaj34UJmlcouxIcagE6ej5uG"
 firebase_json = st.secrets["FIREBASE_KEY"]
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
