@@ -18,7 +18,7 @@ initialize_app(cred)
 
 # -------------------- CONFIG --------------------
 COHERE_API_KEY = "pY0RWQCBSdpAOvDnWaj34UJmlcouxIcagE6ej5uG"
-FIREBASE_CRED_PATH = "firebase_key.json"
+FIREBASE_CRED_PATH = "firebase_key"
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
