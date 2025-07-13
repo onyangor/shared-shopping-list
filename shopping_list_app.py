@@ -15,7 +15,7 @@ firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
 
 # Use credentials from dict directly
 cred = credentials.Certificate(firebase_json)
-initialize_app(cred)
+
 
 
 # -------------------- CONFIG --------------------
