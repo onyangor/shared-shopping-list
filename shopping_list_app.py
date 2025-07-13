@@ -24,18 +24,15 @@ FIREBASE_CRED_PATH = "firebase_key"
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
-
-# Parse Firebase credentials
 firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
 
-# ✅ Initialize Firebase app with DB URL only once
 if not firebase_admin._apps:
     cred = credentials.Certificate(firebase_json)
     firebase_admin.initialize_app(cred, {
-        'databaseURL': "https://vibe-dd050-default-rtdb.firebaseio.com"  # <- REQUIRED!
+        'databaseURL': FIREBASE_DB_URL  # ✅ correct usage
     })
 
-# ✅ Set DB reference (now this won't crash)
+# ✅ Set DB reference (after init)
 db_ref = db.reference('/shopping_list')
 
 
