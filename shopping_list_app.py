@@ -25,15 +25,18 @@ FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
 firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
+cred = credentials.Certificate(firebase_json)
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_json)
+# ✅ Force Firebase app initialization with a custom name if not yet initialized
+app_name = 'shared-shopping-app'
+if app_name not in firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
-        'databaseURL': FIREBASE_DB_URL  # ✅ correct usage
-    })
+        'databaseURL': FIREBASE_DB_URL
+    }, name=app_name)
 
-# ✅ Set DB reference (after init)
-db_ref = db.reference('/shopping_list')
+# ✅ Use reference from that app
+app = firebase_admin.get_app(name=app_name)
+db_ref = db.reference('/shopping_list', app=app)
 
 
 
