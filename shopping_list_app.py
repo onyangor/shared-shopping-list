@@ -5,40 +5,22 @@ import re
 import json
 import io
 import firebase_admin
-import firebase_admin
-from firebase_admin import credentials, db, initialize_app
+from firebase_admin import credentials, db
 
-
-
-# Read the JSON string from secrets and parse it
-firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
-
-# Use credentials from dict directly
-cred = credentials.Certificate(firebase_json)
-
-
-
-# -------------------- CONFIG --------------------
+# -------------------- CONFIG & SECRETS --------------------
 COHERE_API_KEY = st.secrets["COHERE_API_KEY"]
-FIREBASE_CRED_PATH = "firebase_key"
+firebase_json = st.secrets["FIREBASE_KEY"]
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
-firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
-cred = credentials.Certificate(firebase_json)
-
-# ✅ Force Firebase app initialization with a custom name if not yet initialized
-app_name = 'shared-shopping-app'
-if app_name not in firebase_admin._apps:
+if not firebase_admin._apps:
+    cred = credentials.Certificate(firebase_json)
     firebase_admin.initialize_app(cred, {
         'databaseURL': FIREBASE_DB_URL
-    }, name=app_name)
+    })
 
-# ✅ Use reference from that app
-app = firebase_admin.get_app(name=app_name)
-db_ref = db.reference('/shopping_list', app=app)
-
-
+# Firebase DB reference
+db_ref = db.reference("/shopping_list")
 
 # -------------------- STREAMLIT SETUP --------------------
 st.set_page_config(page_title="Shared Shopping List", layout="centered")
@@ -64,14 +46,11 @@ if st.button("Add Item"):
     if item and price:
         entry = {"name": item, "price": price, "currency": currency}
         st.session_state.item_list.append(entry)
-        if db_ref:
-            fb_key = db_ref.push(entry).key
-            st.session_state.firebase_keys.append(fb_key)
-        else:
-            st.session_state.firebase_keys.append(None)
-        st.success(f"✅ Added: {item} - {symbol} {price}")
+        fb_key = db_ref.push(entry).key
+        st.session_state.firebase_keys.append(fb_key)
+        st.success(f"✅ Added: {item} - {symbol}{price}")
 
-# -------------------- DISPLAY LIST WITH EDIT/DELETE --------------------
+# -------------------- DISPLAY LIST --------------------
 st.subheader("🧾 Current Shopping List")
 total = sum(i["price"] for i in st.session_state.item_list)
 count = len(st.session_state.item_list)
@@ -85,17 +64,14 @@ for idx, item in enumerate(st.session_state.item_list):
         new_price = st.number_input(f"Price {idx}", value=item["price"], key=f"price_{idx}")
     with col3:
         if st.button("💾 Save", key=f"save_{idx}"):
-            st.session_state.item_list[idx]["name"] = new_name
-            st.session_state.item_list[idx]["price"] = new_price
+            item.update({"name": new_name, "price": new_price})
             fb_key = st.session_state.firebase_keys[idx]
-            if db_ref and fb_key:
-                db_ref.child(fb_key).update({"name": new_name, "price": new_price})
+            db_ref.child(fb_key).update(item)
             st.success(f"✅ Updated: {new_name}")
         if st.button("❌ Delete", key=f"delete_{idx}"):
             fb_key = st.session_state.firebase_keys.pop(idx)
             deleted = st.session_state.item_list.pop(idx)
-            if db_ref and fb_key:
-                db_ref.child(fb_key).delete()
+            db_ref.child(fb_key).delete()
             st.success(f"🗑️ Deleted: {deleted['name']}")
             st.experimental_rerun()
 
@@ -132,27 +108,19 @@ Text: {text}
     st.markdown("#### 🧠 AI-Generated Items")
     st.code(ai_output, language="markdown")
 
-    # -------------------- PARSE & ADD --------------------
     lines = ai_output.split("\n")
     for line in lines:
-        line = line.strip()
-        match = re.match(r"-\s*(.+?)(?:\s*\((\d+)\))?:\s*(?:KSh|\$|€|£)?\s*([\d.]+)", line)
+        match = re.match(r"-\s*(.+?)(?:\s*\((\d+)\))?:\s*(?:KSh|\$|€|£)?\s*([\d.]+)", line.strip())
         if match:
             name = match.group(1).strip()
             quantity = int(match.group(2)) if match.group(2) else 1
-            try:
-                unit_price = float(match.group(3))
-                for _ in range(quantity):
-                    entry = {"name": name, "price": unit_price, "currency": currency}
-                    st.session_state.item_list.append(entry)
-                    if db_ref:
-                        fb_key = db_ref.push(entry).key
-                        st.session_state.firebase_keys.append(fb_key)
-                    else:
-                        st.session_state.firebase_keys.append(None)
-                st.success(f"✅ Added: {name} x{quantity} - {symbol}{unit_price}")
-            except ValueError:
-                st.warning(f"Skipped: {line} — invalid price format.")
+            unit_price = float(match.group(3))
+            for _ in range(quantity):
+                entry = {"name": name, "price": unit_price, "currency": currency}
+                st.session_state.item_list.append(entry)
+                fb_key = db_ref.push(entry).key
+                st.session_state.firebase_keys.append(fb_key)
+            st.success(f"✅ Added: {name} x{quantity} - {symbol}{unit_price}")
         else:
             st.warning(f"Skipped: {line} — could not parse.")
 
@@ -165,44 +133,37 @@ if st.button("Download Excel"):
         df.to_excel(writer, index=False, sheet_name="Shopping List")
     st.download_button("📥 Download Excel", data=excel_buffer.getvalue(), file_name="shopping_list.xlsx")
 
-# -------------------- FIREBASE VIEW (Editable) --------------------
-if db_ref:
-    st.markdown("### 🔥 Synced with Firebase Realtime DB (Editable)")
-    try:
-        firebase_data = db_ref.get()
-        if firebase_data:
-            for key, item in firebase_data.items():
-                col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1])
+# -------------------- FIREBASE DATA VIEW --------------------
+st.markdown("### 🔥 Firebase Synced Data (Editable)")
+try:
+    firebase_data = db_ref.get()
+    if firebase_data:
+        for key, item in firebase_data.items():
+            col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1])
 
-                with col1:
-                    new_name = st.text_input(f"Name_{key}", item["name"], key=f"name_{key}")
-
-                with col2:
-                    new_price = st.number_input(f"Price_{key}", value=item["price"], key=f"price_{key}")
-
-                with col3:
-                    new_currency = st.selectbox(
-                        f"Currency_{key}", ["KES", "USD", "EUR", "GBP"],
-                        index=["KES", "USD", "EUR", "GBP"].index(item["currency"]),
-                        key=f"currency_{key}"
-                    )
-
-                with col4:
-                    if st.button("💾 Save", key=f"save_{key}"):
-                        db_ref.child(key).update({
-                            "name": new_name,
-                            "price": new_price,
-                            "currency": new_currency
-                        })
-                        st.success(f"✅ Updated: {new_name}")
-                        st.experimental_rerun()
-
-                with col5:
-                    if st.button("❌ Delete", key=f"delete_{key}"):
-                        db_ref.child(key).delete()
-                        st.warning(f"🗑️ Deleted: {item['name']}")
-                        st.experimental_rerun()
-        else:
-            st.info("No Firebase data found.")
-    except Exception as e:
-        st.error(f"Firebase read error: {e}")
+            with col1:
+                new_name = st.text_input(f"Name_{key}", item["name"], key=f"name_{key}")
+            with col2:
+                new_price = st.number_input(f"Price_{key}", value=item["price"], key=f"price_{key}")
+            with col3:
+                new_currency = st.selectbox(f"Currency_{key}", ["KES", "USD", "EUR", "GBP"],
+                    index=["KES", "USD", "EUR", "GBP"].index(item["currency"]),
+                    key=f"currency_{key}")
+            with col4:
+                if st.button("💾 Save", key=f"save_{key}"):
+                    db_ref.child(key).update({
+                        "name": new_name,
+                        "price": new_price,
+                        "currency": new_currency
+                    })
+                    st.success(f"✅ Updated: {new_name}")
+                    st.experimental_rerun()
+            with col5:
+                if st.button("❌ Delete", key=f"delete_{key}"):
+                    db_ref.child(key).delete()
+                    st.warning(f"🗑️ Deleted: {item['name']}")
+                    st.experimental_rerun()
+    else:
+        st.info("No Firebase data found.")
+except Exception as e:
+    st.error(f"Firebase read error: {e}")
