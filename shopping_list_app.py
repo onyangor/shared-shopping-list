@@ -22,13 +22,16 @@ FIREBASE_CRED_PATH = "firebase_key"
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
-import firebase_admin
-from firebase_admin import credentials
-
-# Avoid re-initialization if already initialized
+firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
 if not firebase_admin._apps:
-    cred = credentials.Certificate(json.loads(st.secrets["FIREBASE_KEY"]))
-    firebase_admin.initialize_app(cred)
+    # Note: Include the databaseURL if you are using the Firebase Realtime Database
+    cred = credentials.Certificate(firebase_json)
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': "https://vibe-dd050-default-rtdb.firebaseio.com"
+    })
+
+# Create a database reference
+db_ref = db.reference('/shopping_list')
 
 
 # -------------------- STREAMLIT SETUP --------------------
