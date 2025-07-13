@@ -19,7 +19,7 @@ cred = credentials.Certificate(firebase_json)
 
 
 # -------------------- CONFIG --------------------
-COHERE_API_KEY = "pY0RWQCBSdpAOvDnWaj34UJmlcouxIcagE6ej5uG"
+COHERE_API_KEY = st.secrets["COHERE_API_KEY"]
 FIREBASE_CRED_PATH = "firebase_key"
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
