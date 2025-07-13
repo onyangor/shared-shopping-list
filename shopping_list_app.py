@@ -22,16 +22,14 @@ FIREBASE_CRED_PATH = "firebase_key"
 FIREBASE_DB_URL = "https://vibe-dd050-default-rtdb.firebaseio.com"
 
 # -------------------- INIT FIREBASE --------------------
+import firebase_admin
+from firebase_admin import credentials
+
+# Avoid re-initialization if already initialized
 if not firebase_admin._apps:
-    try:
-        cred = credentials.Certificate(FIREBASE_CRED_PATH)
-        firebase_admin.initialize_app(cred, {"databaseURL": FIREBASE_DB_URL})
-        db_ref = db.reference("shopping_list")
-    except Exception as e:
-        db_ref = None
-        st.warning(f"Firebase not initialized: {e}")
-else:
-    db_ref = db.reference("shopping_list")
+    cred = credentials.Certificate(json.loads(st.secrets["FIREBASE_KEY"]))
+    firebase_admin.initialize_app(cred)
+
 
 # -------------------- STREAMLIT SETUP --------------------
 st.set_page_config(page_title="Shared Shopping List", layout="centered")
