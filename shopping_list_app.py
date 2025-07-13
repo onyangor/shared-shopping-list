@@ -6,6 +6,15 @@ import json
 import io
 import firebase_admin
 from firebase_admin import credentials, db
+from firebase_admin import credentials, initialize_app
+
+# Read the JSON string from secrets and parse it
+firebase_json = json.loads(st.secrets["FIREBASE_KEY"])
+
+# Use credentials from dict directly
+cred = credentials.Certificate(firebase_json)
+initialize_app(cred)
+
 
 # -------------------- CONFIG --------------------
 COHERE_API_KEY = "pY0RWQCBSdpAOvDnWaj34UJmlcouxIcagE6ej5uG"
