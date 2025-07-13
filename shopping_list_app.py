@@ -5,7 +5,9 @@ import re
 import json
 import io
 import firebase_admin
-from firebase_admin import credentials, db
+import firebase_admin
+from firebase_admin import credentials, db, initialize_app
+
 
 
 # Read the JSON string from secrets and parse it
